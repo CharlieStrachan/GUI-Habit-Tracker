@@ -108,14 +108,25 @@ def view_habits_colored(habits: list[Habit]):
         QMessageBox.information(None, "No Habits", "No habits found.")
         return
     
-    QMessageBox.information(None, "Habits", "\n".join([f"{index}. {habit.name} - <b style='color: {'green' if habit.done else 'red'};'>{'Done' if habit.done else 'Not Done'}</b>" for index, habit in enumerate(habits, start=1)]))
-
+    habit_list = []
+    for index, habit in enumerate(habits, start=1):
+        status_color = 'green' if habit.done else 'red'
+        status_text = 'Done' if habit.done else 'Not Done'
+        habit_list.append(f"{index}. {habit.name} - <b style='color: {status_color};'>{status_text}</b>")
+    
+    QMessageBox.information(None, "Habits", "<br>".join(habit_list))
+    
 def view_habits(habits: list[Habit]):
     if not habits:
         QMessageBox.information(None, "No Habits", "No habits found.")
         return
-    QMessageBox.information(None, "Habits", "\n".join([f"{index}. {habit.name}" for index, habit in enumerate(habits, start=1)]))
-
+    
+    habit_list = []
+    for index, habit in enumerate(habits, start=1):
+        habit_list.append(f"{index}. {habit.name}")
+    
+    QMessageBox.information(None, "Habits", "\n".join(habit_list))
+    
 def mark_habits(habits: list[Habit]):
     if not habits:
         QMessageBox.information(None, "No Habits", "No habits found to mark.")
@@ -142,7 +153,7 @@ def remove_habit(habits: list[Habit]):
         return
     
     try:
-        index = int(index_str) - 1  # Convert to 0-based index
+        index = int(index_str) - 1
         if 0 <= index < len(habits):
             habit = habits.pop(index)
             QMessageBox.information(None, "Success", f"Habit '{habit.name}' removed successfully.")
@@ -192,7 +203,7 @@ def main():
     custom_font = QFont("Fira Sans", 18)
     main_window.setFont(custom_font)
     
-    # CSS
+    # Style
     app.setStyleSheet("""
         QWidget, QMessageBox, QInputDialog {
             background-color: #212529;
@@ -211,7 +222,8 @@ def main():
 
         QPushButton:hover {
             background-color: #495057;
-        }                           
+        }
+                                   
         """)
 
     # Load habits from file
@@ -267,5 +279,6 @@ def main():
     # Start the application event loop
     app.exec()
     
+# Call the main function
 if __name__ == "__main__":
     main()
