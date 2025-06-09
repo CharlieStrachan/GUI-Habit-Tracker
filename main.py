@@ -1,4 +1,5 @@
-from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QInputDialog, QMessageBox
+from PySide6.QtWidgets import QApplication, QWidget, QPushButton, QInputDialog, QMessageBox, QLabel
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
 from datetime import datetime
 from dataclasses import dataclass
@@ -11,7 +12,7 @@ class Habit:
 
 def save_habits(habits: list[Habit]):
     if not habits:
-        return
+        habits = []
     try:
         with open("habits.json", "w") as file:
             json.dump([habit.__dict__ for habit in habits], file, indent=4)
@@ -43,6 +44,12 @@ def save_dates(date: str):
     except Exception as e:
         QMessageBox.warning(None, "Error", f"Failed to read date file: {e}")
         return
+    # Write the new date to file
+    try:
+        with open("date.txt", "w") as file:
+            file.write(date)
+    except Exception as e:
+        QMessageBox.warning(None, "Error", f"Failed to save date: {e}")
 
 def load_dates() -> str:
     try:
@@ -103,19 +110,6 @@ def add_habit(habits: list[Habit]):
         habits.append(Habit(name=habit_name, done=False))
     save_habits(habits)
 
-def view_habits_colored(habits: list[Habit]):
-    if not habits:
-        QMessageBox.information(None, "No Habits", "No habits found.")
-        return
-    
-    habit_list = []
-    for index, habit in enumerate(habits, start=1):
-        status_color = 'green' if habit.done else 'red'
-        status_text = 'Done' if habit.done else 'Not Done'
-        habit_list.append(f"{index}. {habit.name} - <b style='color: {status_color};'>{status_text}</b>")
-    
-    QMessageBox.information(None, "Habits", "<br>".join(habit_list))
-    
 def view_habits(habits: list[Habit]):
     if not habits:
         QMessageBox.information(None, "No Habits", "No habits found.")
@@ -123,7 +117,9 @@ def view_habits(habits: list[Habit]):
     
     habit_list = []
     for index, habit in enumerate(habits, start=1):
-        habit_list.append(f"{index}. {habit.name}")
+            status_color = 'green' if habit.done else 'red'
+            status_text = 'Done' if habit.done else 'Not Done'
+            habit_list.append(f"{index}. {habit.name} - <b style='color: {status_color};'>{status_text}</b><br>")
     
     QMessageBox.information(None, "Habits", "\n".join(habit_list))
     
@@ -146,22 +142,17 @@ def remove_habit(habits: list[Habit]):
         QMessageBox.information(None, "No Habits", "No habits found to delete.")
         return
     
-    view_habits(habits)
-    
-    index_str, ok = QInputDialog.getText(None, "Delete Habit", "Enter the number of the habit you would like to remove:")
-    if not ok or not index_str:
+    habit_names = [habit.name for habit in habits]
+    habit_name, ok = QInputDialog.getItem(None, "Delete Habit", "Select the habit you would like to remove:", habit_names, 0, False)
+    if not ok or not habit_name:
         return
-    
-    try:
-        index = int(index_str) - 1
-        if 0 <= index < len(habits):
-            habit = habits.pop(index)
+    for habit in habits:
+        if habit.name == habit_name:
+            habits.remove(habit)
             QMessageBox.information(None, "Success", f"Habit '{habit.name}' removed successfully.")
             save_habits(habits)
-        else:
-            QMessageBox.warning(None, "Input Error", "Invalid habit number.")
-    except ValueError:
-        QMessageBox.warning(None, "Input Error", "Please enter a valid number.")
+            return
+    QMessageBox.warning(None, "Input Error", f"Habit '{habit_name}' not found.")
 
 def view_progress(habits: list[Habit]):
     progress_data = load_daily_progress()
@@ -198,34 +189,36 @@ def main():
     main_window = QWidget()
     main_window.setWindowTitle("Habit Tracker")
     main_window.resize(800, 600)
+    
+    # Title label
+    title_label = QLabel("Habit Tracker", main_window)
+    title_label.setStyleSheet("font-size: 24px; font-weight: bold; color: #FFFFFF; padding: 10px;")
+    title_label.setAlignment(Qt.AlignCenter)  # type: ignore
+    title_label.setGeometry(0, 10, main_window.width(), 40)
 
     # Set custom font
     custom_font = QFont("Fira Sans", 18)
-    main_window.setFont(custom_font)
-    
+    app.setFont(custom_font)
+
     # Style
     app.setStyleSheet("""
         QWidget, QMessageBox, QInputDialog {
             background-color: #212529;
             color: #FFFFFF;
-            font-family: 'Fira Sans', sans-serif;
             font-size: 18px;
         }
-        
+
         QPushButton {
             border-radius: 10px;
             background-color: #343A40;
             color: #FFFFFF;
-            font-family: 'Fira Sans', sans-serif;
             font-size: 18px;
         }
 
         QPushButton:hover {
             background-color: #495057;
         }
-                                   
         """)
-
     # Load habits from file
     habits = load_habits()
     if not habits:
@@ -256,7 +249,7 @@ def main():
     # View habits buttons
     view_habits_button = QPushButton("View Habits", main_window)
     view_habits_button.setGeometry((main_window.width() - 250) // 2, 140, 250, 60)
-    view_habits_button.clicked.connect(lambda: view_habits_colored(habits))
+    view_habits_button.clicked.connect(lambda: view_habits(habits))
 
     # Mark habits button
     mark_habits_button = QPushButton("Mark Habits", main_window)
